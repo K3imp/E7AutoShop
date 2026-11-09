@@ -33,16 +33,15 @@ def patch_shop(s):
     s=replace_once(s, 'def __init__(self, skystones) -> None:', 'def __init__(self, skystones, buy_friendships=True) -> None:')
     s=replace_once(s, '        self.skystones = skystones', '        self.skystones = skystones\n        self.buy_friendships = buy_friendships')
     s=replace_once(s, '        autoshop = Shop()', '        autoshop = Shop(buy_friendships=self.buy_friendships)')
-    s=replace_once(s, "        'mystics': 0,", "        'mystics': 0,\n        'friendships': 0,")
+    s=replace_once(s, "    inventory = {\n        'covenants': 0,\n        'mystics': 0,", "    inventory = {\n        'covenants': 0,\n        'mystics': 0,\n        'friendships': 0,")
     s=replace_once(s, '    def __init__(self) -> None:', '    def __init__(self, buy_friendships=True) -> None:')
     s=replace_once(s, "        self.purchase_list = ['184000', '280000']", "        self.purchase_list = ['184000', '280000']\n        if buy_friendships:\n            self.purchase_list.append('18000')")
-    s=replace_once(s, "            'mystics': 0,", "            'mystics': 0,\n            'friendships': 0,") if "            'mystics': 0," in s else s
     # The game replaced its 5 Friendship Bookmarks with 50 Friendship Points in Feb 2026.
     s=replace_once(s, "return 'Friendship Bookmarks'", "return 'Friendship Points'")
     s=replace_once(s, "self.inventory['friendships']+= 5", "self.inventory['friendships']+= 50")
     s=replace_once(s, "self.output.append(f'Purchased: Friendship Bookmarks')", "self.output.append(f'Purchased: 50 Friendship Points')")
     # Make sure reset clears friendship quantities too (the dictionary is cumulative).
-    s=replace_once(s, "        self.inventory.update({ 'covenants': 0, 'mystics': 0,", "        self.inventory.update({ 'covenants': 0, 'mystics': 0, 'friendships': 0,")
+    s=replace_once(s, "    def clear_inventory(self):\n        self.inventory.update({\n        'covenants': 0,\n        'mystics': 0,", "    def clear_inventory(self):\n        self.inventory.update({\n        'covenants': 0,\n        'mystics': 0,\n        'friendships': 0,")
     return s
 
 
@@ -68,7 +67,7 @@ class Sessions(SQLObject):''')
 def patch_main(s):
     s=replace_once(s, '        header.setSectionResizeMode(4, QHeaderView.Stretch)', '        header.setSectionResizeMode(4, QHeaderView.Stretch)\n        header.setSectionResizeMode(5, QHeaderView.Stretch)')
     s=replace_once(s, 'self.shop_thread = ShopThread(refreshes)', 'self.shop_thread = ShopThread(refreshes, buy_friendships=self.ui.buy_friendships_checkbox.isChecked())')
-    s=replace_once(s, '        self.currency(0, 0, 0, 0) # reset currency and colors', '        self.currency(0, 0, 0, 0, 0) # reset currency and colors')
+    s=replace_once(s, '        self.currency(0, 0, 0, 0)   # reset currency and colors', '        self.currency(0, 0, 0, 0, 0)   # reset currency and colors')
     s=replace_once(s, 'gold=stash["gold_spent"])', 'gold=stash["gold_spent"], friendships=stash.get("friendships", 0))')
     s=replace_once(s, 'def currency(self, cov: int, myst: int, sky: int, gold: int):', 'def currency(self, cov: int, myst: int, sky: int, gold: int, friendships: int = 0):')
     s=replace_once(s, '        self.ui.mystic_label.setText(str(myst))', '        self.ui.mystic_label.setText(str(myst))\n        self.ui.friendship_label.setText(str(friendships))')
