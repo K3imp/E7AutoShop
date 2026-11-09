@@ -74,7 +74,7 @@ def patch_main(s):
     s=replace_once(s, '        self.ui.mystic_label.setStyleSheet(f"color: {color};")', '        self.ui.mystic_label.setStyleSheet(f"color: {color};")\n        self.ui.friendship_label.setStyleSheet(f"color: {color};")')
     s=replace_once(s, "            'mystics': (self.ui.mystic_label, 'green'),", "            'mystics': (self.ui.mystic_label, 'green'),\n            'friendships': (self.ui.friendship_label, 'green'),")
     s=replace_once(s, "self.currency(inventory['covenants'], inventory['mystics'], inventory['gems_spent'], inventory['gold_spent'])", "self.currency(inventory['covenants'], inventory['mystics'], inventory['gems_spent'], inventory['gold_spent'], inventory.get('friendships', 0))")
-    s=replace_once(s, "        for key, (label, color) in inventory_styles.items():\n            if inventory[key] > 0:", "        for key, (label, color) in inventory_styles.items():\n            if inventory.get(key, 0) > 0:")
+    s=replace_once(s, "            for key, (label, color) in inventory_styles.items():\n                if inventory[key] > 0:", "            for key, (label, color) in inventory_styles.items():\n                if inventory.get(key, 0) > 0:")
     s=replace_once(s, 'self.ui.tableWidget.setItem(index, 4, QTableWidgetItem(str(row.gold_spent)))', 'self.ui.tableWidget.setItem(index, 4, QTableWidgetItem(str(row.gold_spent)))\n            self.ui.tableWidget.setItem(index, 5, QTableWidgetItem(str(row.friendships)))')
     return s
 
