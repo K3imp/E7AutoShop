@@ -1,0 +1,66 @@
+name: Build E7AutoShop Friendship Windows EXE
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out your E7AutoShop fork
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          architecture: x64
+
+      - name: Apply Friendship Points changes
+        run: python apply_patch.py .
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+        shell: pwsh
+
+      - name: Generate UI and image resources
+        run: |
+          python -m PyQt5.uic.pyuic -x main.ui -o ui.py
+          pyrcc5 resource.qrc -o resource_rc.py
+        shell: pwsh
+
+      - name: Download Android Debug Bridge
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri 'https://dl.google.com/android/repository/platform-tools-latest-windows.zip' -OutFile "$env:RUNNER_TEMP\platform-tools.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\platform-tools.zip" -DestinationPath "$env:RUNNER_TEMP\platformtools" -Force
+          New-Item -ItemType Directory -Force -Path 'tools\adb' | Out-Null
+          Copy-Item "$env:RUNNER_TEMP\platformtools\platform-tools\*" 'tools\adb' -Recurse -Force
+          if (!(Test-Path 'tools\adb\adb.exe')) { throw 'ADB not copied' }
+
+      - name: Install and bundle Tesseract OCR
+        shell: pwsh
+        run: |
+          choco install tesseract --yes --no-progress
+          $candidates = @('C:\Program Files\Tesseract-OCR', 'C:\Program Files (x86)\Tesseract-OCR')
+          $source = $candidates | Where-Object { Test-Path (Join-Path $_ 'tesseract.exe') } | Select-Object -First 1
+          if (!$source) { throw 'Tesseract not found after installation' }
+          New-Item -ItemType Directory -Force -Path 'tools\tesseract-ocr' | Out-Null
+          Copy-Item "$source\*" 'tools\tesseract-ocr' -Recurse -Force
+          if (!(Test-Path 'tools\tesseract-ocr\tesseract.exe')) { throw 'Tesseract not copied' }
+
+      - name: Build Windows executable with upstream spec
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean autoshop.spec
+          if (!(Test-Path 'dist\autoshop\autoshop.exe')) { throw 'EXE not generated' }
+
+      - name: Upload downloadable ZIP of built app
+        uses: actions/upload-artifact@v4
+        with:
+          name: E7AutoShop-Friendship-Windows
+          path: dist/autoshop/
+          if-no-files-found: error
